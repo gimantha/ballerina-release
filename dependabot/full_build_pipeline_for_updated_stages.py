@@ -4,11 +4,12 @@ import constants
 import os
 import sys
 
+DIST_REPO_PATCH_BRANCH = '2201.0.x'
 
 stdlib_modules_by_level = dict()
-stdlib_modules_json_file = 'https://raw.githubusercontent.com/ballerina-platform/ballerina-standard-library/' \
-                               'main/release/resources/stdlib_modules.json'
-stdlib_module_versions = dict()
+stdlib_modules_json_file = 'https://raw.githubusercontent.com/ballerina-platform/ballerina-release/master/' + \
+                           'dependabot/resources/extensions.json'
+
 ballerina_lang_branch = "master"
 enable_tests = 'true'
 github_user = 'ballerina-platform'
@@ -21,7 +22,6 @@ ballerina_bot_token = os.environ[constants.ENV_BALLERINA_BOT_TOKEN]
 def main():
     global stdlib_modules_by_level
     global stdlib_modules_json_file
-    global stdlib_module_versions
     global ballerina_lang_branch
     global github_user
     global enable_tests
@@ -29,6 +29,7 @@ def main():
     if len(sys.argv) > 2:
         ballerina_lang_branch = sys.argv[1]
         enable_tests = sys.argv[2]
+        github_user = sys.argv[3]
 
     read_stdlib_modules()
     if stdlib_modules_by_level:
@@ -57,12 +58,13 @@ def read_stdlib_modules():
 
 
 def read_dependency_data(stdlib_modules_data):
-    for module in stdlib_modules_data['modules']:
+    for module in stdlib_modules_data['standard_library']:
         name = module['name']
         level = module['level']
         version_key = module['version_key']
-        stdlib_modules_by_level[level] = stdlib_modules_by_level.get(level, []) + [{"name": name,
-                                                                                    "version_key": version_key}]
+        if level < 8:
+            stdlib_modules_by_level[level] = stdlib_modules_by_level.get(level, []) + [{"name": name,
+                                                                                        "version_key": version_key}]
 
 
 def clone_repositories():
@@ -70,13 +72,15 @@ def clone_repositories():
 
     # Clone ballerina-lang repo
     exit_code = os.system(f"git clone https://github.com/{github_user}/ballerina-lang.git || " +
-                          "echo 'please fork ballerina-lang repository to your github account'")
+                          "echo 'Please fork ballerina-lang repository to your github account'")
     if exit_code != 0:
         sys.exit(1)
 
     # Change branch
-    os.system(f"cd ballerina-lang;git checkout {ballerina_lang_branch}")
+    exit_code = os.system(f"cd ballerina-lang;git checkout {ballerina_lang_branch}")
     os.system("cd ballerina-lang;git status")
+    if exit_code != 0:
+        sys.exit(1)
 
     # Clone standard library repos
     for level in stdlib_modules_by_level:
@@ -88,6 +92,12 @@ def clone_repositories():
 
     # Clone ballerina-distribution repo
     exit_code = os.system(f"git clone {constants.BALLERINA_ORG_URL}ballerina-distribution.git")
+    if exit_code != 0:
+        sys.exit(1)
+
+    # Change branch
+    exit_code = os.system(f"cd ballerina-distribution;git checkout {DIST_REPO_PATCH_BRANCH}")
+    os.system("cd ballerina-distribution;git status")
     if exit_code != 0:
         sys.exit(1)
 
@@ -104,7 +114,7 @@ def build_stdlib_repositories(enable_tests):
 
     # Build ballerina-lang repo
     exit_code = os.system(f"cd ballerina-lang;" +
-                          f"./gradlew clean build{cmd_exclude_tests} publishToMavenLocal --stacktrace --scan")
+                          f"./gradlew clean build -x test publishToMavenLocal --stacktrace --scan")
     if exit_code != 0:
         print(f"Build failed for ballerina-lang")
         sys.exit(1)
@@ -114,22 +124,30 @@ def build_stdlib_repositories(enable_tests):
         stdlib_modules = stdlib_modules_by_level[level]
         for module in stdlib_modules:
             os.system(f"echo Building Standard Library Module: {module['name']}")
-            exit_code = os.system(f"cd {module['name']};" +
-                                  f"export packageUser={ballerina_bot_username};" +
-                                  f"export packagePAT={ballerina_bot_token};" +
-                                  f"./gradlew clean build{cmd_exclude_tests} publishToMavenLocal --stacktrace --scan")
+            if module['name'] == "module-ballerina-c2c":
+                exit_code = os.system(f"cd {module['name']};" +
+                                      f"export packageUser={ballerina_bot_username};" +
+                                      f"export packagePAT={ballerina_bot_token};" +
+                                      f"./gradlew clean build -x test publishToMavenLocal --stacktrace --scan")
+            else:
+                exit_code = os.system(f"cd {module['name']};" +
+                                      f"export packageUser={ballerina_bot_username};" +
+                                      f"export packagePAT={ballerina_bot_token};" +
+                                      f"./gradlew clean build{cmd_exclude_tests} publishToMavenLocal --stacktrace --scan")
             if exit_code != 0:
+                write_failed_module(module['name'])
                 print(f"Build failed for {module['name']}")
                 sys.exit(1)
 
     # Build ballerina-distribution repo
     os.system("echo Building ballerina-distribution")
     exit_code = os.system(f"cd ballerina-distribution;" +
-                    f"export packageUser={ballerina_bot_username};" +
-                    f"export packagePAT={ballerina_bot_token};" +
-                    f"./gradlew clean build{cmd_exclude_tests} -x :ballerina:testExamples " +
-                    f"publishToMavenLocal --stacktrace --scan")
+                          f"export packageUser={ballerina_bot_username};" +
+                          f"export packagePAT={ballerina_bot_token};" +
+                          f"./gradlew clean build{cmd_exclude_tests} " +
+                          f"publishToMavenLocal --stacktrace --scan --console=plain --no-daemon --continue")
     if exit_code != 0:
+        write_failed_module("ballerina-distribution")
         print(f"Build failed for ballerina-distribution")
         sys.exit(1)
 
@@ -143,13 +161,14 @@ def change_version_to_snapshot():
                 name, value = line.split("=")
                 if name == "version":
                     lang_version = value
+                    break
             except ValueError:
                 continue
         config_file.close()
 
     print("Lang Version:", lang_version)
 
-    # Change dependent stdlib_module_versions & ballerina-lang version to SNAPSHOT in the stdlib modules
+    # Change ballerina-lang version in the stdlib modules
     for level in stdlib_modules_by_level:
         stdlib_modules = stdlib_modules_by_level[level]
         for module in stdlib_modules:
@@ -159,15 +178,15 @@ def change_version_to_snapshot():
                     for line in config_file:
                         try:
                             name, value = line.split("=")
-                            if name.startswith("stdlib"):
-                                version = value.split("-")[0]
-                                value = version + "-SNAPSHOT\n"
-                            elif "ballerinaLangVersion" in name:
+                            if "ballerinaLangVersion" in name:
                                 value = lang_version
                             properties[name] = value
                         except ValueError:
                             continue
                     config_file.close()
+                # Increase java heap size for c2c module
+                if module['name'] == "module-ballerina-c2c":
+                    properties["org.gradle.jvmargs"] = "-Xmx4096m"
 
                 with open(f"{module['name']}/gradle.properties", 'w') as config_file:
                     for prop in properties:
@@ -178,16 +197,13 @@ def change_version_to_snapshot():
                 print(f"Cannot find the gradle.properties file for {module['name']}")
                 sys.exit(1)
 
-    # Change dependent stdlib_module_versions & ballerina-lang version to SNAPSHOT in the ballerina-distribution
+    # Change ballerina-lang version in ballerina-distribution
     properties = dict()
     with open("ballerina-distribution/gradle.properties", 'r') as config_file:
         for line in config_file:
             try:
                 name, value = line.split("=")
-                if name.startswith("stdlib"):
-                    version = value.split("-")[0]
-                    value = version + "-SNAPSHOT\n"
-                elif "ballerinaLangVersion" in name:
+                if "ballerinaLangVersion" in name:
                     value = lang_version
                 properties[name] = value
             except ValueError:
@@ -201,6 +217,8 @@ def change_version_to_snapshot():
 
 
 def switch_to_branches_from_updated_stages():
+    global exit_code
+
     properties = dict()
 
     with open("ballerina-distribution/gradle.properties", 'r') as config_file:
@@ -216,6 +234,8 @@ def switch_to_branches_from_updated_stages():
     for level in stdlib_modules_by_level:
         stdlib_modules = stdlib_modules_by_level[level]
         for module in stdlib_modules:
+            if module['name'] == "module-ballerinai-transaction":
+                continue
             try:
                 version = properties[module['version_key']]
                 if len(version.split("-")) > 1:
@@ -237,6 +257,12 @@ def switch_to_branches_from_updated_stages():
 
             except KeyError:
                 continue
+
+
+def write_failed_module(module_name):
+    with open("failed_module.txt", "w") as file:
+        file.writelines(module_name)
+        file.close()
 
 
 main()

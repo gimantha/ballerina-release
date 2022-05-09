@@ -1,21 +1,9 @@
-name: Full Build Pipeline
+name: Daily Full Build Pipeline (patch branch)
 
 on:
   workflow_dispatch:
-      inputs:
-        ballerina_lang_branch:
-          description: 'Ballerina-lang branch'
-          required: true
-          default: 'master'
-        enable_tests:
-          type: choice
-          description: 'Enable Tests'
-          deprecationMessage: 'true or false'
-          required: true
-          options:
-            - 'true'
-            - 'false'
-          default: 'true'
+  schedule:
+    - cron: '0 0 * * *'
 
 jobs:
   build-pipeline:
@@ -35,16 +23,35 @@ jobs:
           pip install requests
           pip install retry
           pip install PyGithub
+          pip install cryptography
+          pip install httplib2
 
       - name: Build Modules
         run: |
-          python dependabot/build_stdlibs_for_lang_updates.py ${{ github.event.inputs.ballerina_lang_branch }} ${{ github.event.inputs.enable_tests }} ${{ github.repository_owner }}
+          python dependabot/full_build_pipeline_for_updated_stages.py 2201.0.x true ballerina-platform
         env:
           BALLERINA_BOT_USERNAME: ${{ secrets.BALLERINA_BOT_USERNAME }}
           BALLERINA_BOT_TOKEN: ${{ secrets.BALLERINA_BOT_TOKEN }}
           BALLERINA_BOT_EMAIL: ${{ secrets.BALLERINA_BOT_EMAIL }}
           BALLERINA_REVIEWER_BOT_TOKEN: ${{ secrets.BALLERINA_REVIEWER_BOT_TOKEN }}
           devCentralToken: ${{ secrets.BALLERINA_DEV_CENTRAL_ACCESS_TOKEN }}
+
+      - name: Set Env Variable
+        if: ${{ failure() }}
+        id: set-module
+        run: |
+          echo "::set-output name=module::$(cat failed_module.txt)"
+
+      - name: Notify Build Failure
+        if: ${{ failure() }}
+        run: |
+          python3 dependabot/notify_full_build_failure.py ${{ steps.set-module.outputs.module }} patch
+        env:
+          CHAT_ID: ${{ secrets.NOTIFICATIONS_CHAT_ID }}
+          CHAT_KEY: ${{ secrets.NOTIFICATIONS_CHAT_KEY }}
+          CHAT_TOKEN: ${{ secrets.NOTIFICATIONS_CHAT_TOKEN }}
+          ENV_USER_ENCRYPTION_KEY: ${{secrets.USER_ENCRYPTION_KEY}}
+          BALLERINA_BOT_TOKEN: ${{ secrets.BALLERINA_BOT_TOKEN }}
 
       - name: Get project version
         id: project-version
@@ -118,7 +125,6 @@ jobs:
         with:
           name: MacOS Installer pkg
           path: ballerina-distribution/installers/mac/target/pkg/ballerina-*-macos-x64.pkg
-
 
   windows-installer-build:
     needs: build-pipeline

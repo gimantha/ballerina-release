@@ -1,6 +1,6 @@
 {
     "auto_bump": true,
-    "lang_version_substring": "2201.0.1",
+    "lang_version_substring": "2201.0.2",
     "standard_library": [
         {
             "name": "module-ballerina-auth"
@@ -114,10 +114,22 @@
             "version_key": "stdlibOAuth2Version"
         },
         {
+            "name": "graphql-tools",
+            "group_id": "io.ballerina",
+            "artifact_id": "graphql-tools",
+            "version_key": "graphqlVersion"
+        },
+        {
             "name": "openapi-tools",
             "group_id": "io.ballerina",
             "artifact_id": "module-ballerina-openapi",
             "version_key": "openapiVersion"
+        },
+        {
+            "name": "asyncapi-tools",
+            "group_id": "io.ballerina",
+            "artifact_id": "module-ballerina-asyncapi",
+            "version_key": "asyncapiVersion"
         },
         {
             "name": "module-ballerinax-oracledb"
