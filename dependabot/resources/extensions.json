@@ -3,6 +3,23 @@
     "lang_version_substring": "2201.0.2",
     "standard_library": [
         {
+            "name": "module-ballerina-constraint",
+            "level": 1,
+            "group_id": "io.ballerina.stdlib",
+            "artifact_id": "constraint-ballerina",
+            "version_key": "stdlibConstraintVersion",
+            "default_branch": "main",
+            "auto_merge": true,
+            "push_to_central": true,
+            "is_extended_library_module": false,
+            "build_action_file": "build-timestamped-master",
+            "send_notification": true,
+            "dependents": [
+                "module-ballerina-cache",
+                "module-ballerinax-nats"
+            ]
+        },
+        {
             "name": "module-ballerina-io",
             "level": 1,
             "group_id": "io.ballerina.stdlib",
@@ -18,6 +35,7 @@
                 "module-ballerinax-datamapper",
                 "module-ballerina-log",
                 "module-ballerina-os",
+                "module-ballerina-serdes",
                 "module-ballerina-xslt"
             ]
         },
@@ -227,6 +245,22 @@
                 "module-ballerinax-kafka",
                 "module-ballerina-websub",
                 "module-ballerina-websubhub"
+            ]
+        },
+        {
+            "name": "module-ballerina-serdes",
+            "level": 2,
+            "group_id": "io.ballerina.stdlib",
+            "artifact_id": "serdes-ballerina",
+            "version_key": "stdlibSerdesVersion",
+            "default_branch": "main",
+            "auto_merge": true,
+            "push_to_central": true,
+            "is_extended_library_module": false,
+            "build_action_file": "build-timestamped-master",
+            "send_notification": true,
+            "dependents": [
+                "ballerina-distribution"
             ]
         },
         {
@@ -644,8 +678,8 @@
                 "module-ballerinax-mssql",
                 "module-ballerinax-mysql",
                 "module-ballerinax-oracledb",
-                "module-ballerinax-postgresql",
-                "ballerina-distribution"
+                "module-ballerina-persist",
+                "module-ballerinax-postgresql"
             ]
         },
         {
@@ -665,6 +699,23 @@
             ]
         },
         {
+            "name": "module-ballerina-persist",
+            "level": 8,
+            "group_id": "io.ballerina.stdlib",
+            "artifact_id": "persist-ballerina",
+            "version_key": "stdlibPersistVersion",
+            "default_branch": "main",
+            "auto_merge": true,
+            "push_to_central": true,
+            "is_extended_library_module": false,
+            "build_action_file": "build-timestamped-master",
+            "send_notification": true,
+            "dependents": [
+                "persist-tools",
+                "ballerina-distribution"
+            ]
+        },
+        {
             "name": "openapi-tools",
             "level": 8,
             "group_id": "io.ballerina",
@@ -679,6 +730,20 @@
             "dependents": [
                 "ballerina-distribution"
             ]
+        },
+        {
+            "name": "persist-tools",
+            "level": 9,
+            "group_id": "io.ballerina",
+            "artifact_id": "persist-tools",
+            "version_key": "persistVersion",
+            "default_branch": "main",
+            "auto_merge": true,
+            "push_to_central": false,
+            "is_extended_library_module": false,
+            "build_action_file": "build-timestamped-master",
+            "send_notification": true,
+            "dependents": []
         },
         {
             "name": "ballerina-distribution",

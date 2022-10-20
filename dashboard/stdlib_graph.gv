@@ -2,6 +2,7 @@ digraph "Stdlib Dependency Graph" {
 	subgraph cluster_1 {
 		node [color=white style=filled]
 		color=lightgrey style=filled
+		constraint
 		io
 		"jballerina.java.arrays"
 		regex
@@ -18,6 +19,7 @@ digraph "Stdlib Dependency Graph" {
 		os
 		protobuf
 		random
+		serdes
 		task
 		xslt
 		label="level 2"
@@ -77,11 +79,15 @@ digraph "Stdlib Dependency Graph" {
 		mssql
 		mysql
 		oracledb
+		persist
 		postgresql
 		label="level 8"
 	}
+	constraint -> cache
+	constraint -> nats
 	io -> log
 	io -> os
+	io -> serdes
 	io -> xslt
 	regex -> log
 	regex -> uuid
@@ -141,5 +147,6 @@ digraph "Stdlib Dependency Graph" {
 	sql -> mssql
 	sql -> mysql
 	sql -> oracledb
+	sql -> persist
 	sql -> postgresql
 }
