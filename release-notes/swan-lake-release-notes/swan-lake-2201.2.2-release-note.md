@@ -56,6 +56,7 @@ If you have not installed Ballerina, then download the [installers](/downloads/#
 
 To view bug fixes, see the GitHub milestone for Swan Lake 2201.2.2 of the repositories below.
 
+- [Language](https://github.com/ballerina-platform/ballerina-lang/issues?q=is%3Aissue+label%3ATeam%2FCompilerFE+milestone%3A2201.2.2+is%3Aclosed)
 - [Language Server](https://github.com/ballerina-platform/ballerina-lang/issues?q=is%3Aissue+label%3ATeam%2FLanguageServer%2FExtensions+milestone%3A2201.2.2+is%3Aclosed)
 - [CLI](https://github.com/ballerina-platform/ballerina-lang/issues?q=is%3Aissue+is%3Aclosed+milestone%3A2201.2.2+label%3AArea%2FCLI)
 - [Project API](https://github.com/ballerina-platform/ballerina-lang/issues?q=is%3Aissue+milestone%3A2201.2.2+is%3Aclosed+label%3AArea%2FProjectAPI)
